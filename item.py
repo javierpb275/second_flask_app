@@ -2,8 +2,6 @@ from flask_restful import Resource, reqparse
 from flask_jwt import jwt_required
 import sqlite3
 
-items = []
-
 
 class Item(Resource):
     parser = reqparse.RequestParser()
@@ -39,7 +37,7 @@ class Item(Resource):
         item = {'name': name, 'price': data['price']}
         try:
             self.insert(item)
-        except:
+        except sqlite3.Error as err:
             return {"message": "An error occurred inserting the item."}, 500
         return item, 201
 
@@ -71,12 +69,12 @@ class Item(Resource):
         if item is None:
             try:
                 self.insert(updated_item)
-            except:
+            except sqlite3.Error as err:
                 return {'message': 'An error occurred inserting the item'}, 500
         else:
             try:
                 self.update(updated_item)
-            except:
+            except sqlite3.Error as err:
                 return {'message': 'An error occurred updating the item'}, 500
         return updated_item
 
@@ -91,6 +89,13 @@ class Item(Resource):
 
 
 class ItemList(Resource):
-
     def get(self):
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor()
+        query = "SELECT * FROM items"
+        result = cursor.execute(query)
+        items = []
+        for row in result:
+            items.append({'name': row[0], 'price': row[1]})
+        connection.close()
         return {'items': items}
